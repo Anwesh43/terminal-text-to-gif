@@ -14,16 +14,18 @@ class Stage {
         this.canvas.width  = w 
         this.canvas.height = h 
         this.context = this.canvas.getContext('2d')
+        this.textList = new TextList()
     }
 
     render(cb) {
         this.context.fillStyle = backColor
         this.context.fillRect(0, 0, w, h)
+        this.textList.draw(this.context)
         cb(this.context)
     }
 
     update(cb) {
-        
+        this.textList.update(cb)        
     }
 }
 
