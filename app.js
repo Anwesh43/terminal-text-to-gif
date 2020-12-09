@@ -50,7 +50,23 @@ class TextGif {
             })
             this.stage.update(() => {
                 this.encoder.end()
+                this.started = false
             })
+        }
+    }
+}
+
+class State {
+
+    constructor() {
+        this.scale = 0
+    }
+
+    update(cb) {
+        this.scale += 0.02 
+        if (Math.abs(this.scale) > 1) {
+            this.scale = 1
+            cb()
         }
     }
 }
