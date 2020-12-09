@@ -5,7 +5,8 @@ const {createWriteStream} = require('fs')
 const w = 500, h = 500
 const backColor = "#BDBDBD"
 const delay = 50 
-
+const text = "I code dreams into Reality"
+const textParts = text.split(" ")
 class Stage {
 
     initCanvas() {
@@ -68,5 +69,34 @@ class State {
             this.scale = 1
             cb()
         }
+    }
+}
+
+class TextNode {
+
+    constructor(i) {
+        this.state = new State()
+        this.i = i 
+    }
+
+    draw(context) {
+        const scale = this.state.scale 
+        const text = textParts[this.i]
+        const gap =  (2 * h) / (6 * textParts) 
+        context.font = this.context.font.replace(/d+/, `${gap}`)
+        context.fillStyle = 'teal'
+        const textSize = context.measureText(text).w 
+        const x = (w / 2 + textSize / 2) * (1 - scale)
+        context.save()
+        context.translate(
+          w / 2 + (1 - 2 * (this.i % 2)) *  x,
+          h / 3 + i * (2 * gap) 
+        )
+        context.fillText(text, -textSize / 2, -gap / 4)
+        context.restore()
+    }
+
+    update(cb) {
+        this.state.update(cb)
     }
 }
