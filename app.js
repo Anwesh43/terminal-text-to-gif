@@ -1,10 +1,9 @@
-const GifEncoder = require('gifencoder')
-const Canvas = require('canvas')
+const {Canvas} = require('canvas')
 const GIFEncoder = require('gifencoder')
 const {createWriteStream} = require('fs')
 const w = 500, h = 500
 const backColor = "#BDBDBD"
-const delay = 50 
+const delay = 20 
 const text = "I code dreams into Reality"
 const textParts = text.split(" ")
 class Stage {
@@ -33,11 +32,12 @@ class TextGif {
 
     constructor() {
         this.encoder = new GIFEncoder(w, h)
-        this.encoder.setQuality(100)
+        this.encoder.setQuality(200)
         this.encoder.setDelay(delay)
         this.encoder.setRepeat(0)
         this.started = false
         this.stage = new Stage()
+        this.stage.initCanvas()
     }
 
     create(fileName) {
@@ -66,7 +66,7 @@ class State {
     }
 
     update(cb) {
-        this.scale += 0.02 
+        this.scale += 0.01
         if (Math.abs(this.scale) > 1) {
             this.scale = 1
             cb()
@@ -86,23 +86,24 @@ class TextNode {
     }
 
     draw(context) {
+      if (this.prev) {
+          this.prev.draw(context)
+      }
         const scale = this.state.scale 
         const text = textParts[this.i]
-        const gap =  (2 * h) / (6 * textParts) 
-        context.font = this.context.font.replace(/d+/, `${gap}`)
-        context.fillStyle = 'teal'
-        const textSize = context.measureText(text).w 
+        const gap =  (2 * h) / (6 * textParts.length) 
+        context.font = `${gap}px monospace`
+        context.fillStyle = '#212121'
+        const textSize = context.measureText(text).width 
         const x = (w / 2 + textSize / 2) * (1 - scale)
         context.save()
         context.translate(
           w / 2 + (1 - 2 * (this.i % 2)) *  x,
-          h / 3 + i * (2 * gap) 
+          h / 3 + this.i * (2 * gap) 
         )
         context.fillText(text, -textSize / 2, -gap / 4)
-        context.restore()
-        if (this.prev) {
-            this.prev.draw(context)
-        }
+        context.restore()        
+        console.log("Rendering", text)
     }
 
     update(cb) {
@@ -123,7 +124,12 @@ class TextList {
     update(cb) {
         this.curr.update(() => {
             this.curr = this.curr.next 
-            cb()
+            if (!this.curr) {
+                cb()
+            }
         })
     }
 }
+
+const textGif = new TextGif()
+textGif.create('aa.gif')
