@@ -77,6 +77,10 @@ class TextNode {
     constructor(i) {
         this.state = new State()
         this.i = i 
+        if (this.i < textParts.length - 1) {
+            this.next = new TextNode(this.i + 1)
+            this.next.prev = this 
+        }
     }
 
     draw(context) {
@@ -94,9 +98,30 @@ class TextNode {
         )
         context.fillText(text, -textSize / 2, -gap / 4)
         context.restore()
+        if (this.prev) {
+            this.prev.draw(context)
+        }
     }
 
     update(cb) {
         this.state.update(cb)
+    }
+}
+
+class TextList {
+
+    constructor() {
+        this.curr = new TextNode(0)
+    }
+
+    draw(context) {
+        this.curr.draw(context)
+    }
+
+    update(cb) {
+        this.curr.update(() => {
+            this.curr = this.curr.next 
+            cb()
+        })
     }
 }
