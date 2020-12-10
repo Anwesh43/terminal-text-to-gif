@@ -4,16 +4,14 @@ const {createWriteStream} = require('fs')
 const w = 500, h = 500
 const backColor = "#BDBDBD"
 const delay = 20 
-const text = "I code dreams into Reality"
-const textParts = text.split(" ")
 class Stage {
 
-    initCanvas() {
+    initCanvas(text) {
         this.canvas = new Canvas()
         this.canvas.width  = w 
         this.canvas.height = h 
         this.context = this.canvas.getContext('2d')
-        this.textList = new TextList()
+        this.textList = new TextList(text)
     }
 
     render(cb) {
@@ -37,15 +35,16 @@ class TextGif {
         this.encoder.setRepeat(0)
         this.started = false
         this.stage = new Stage()
-        this.stage.initCanvas()
+        
     }
 
-    create(fileName) {
+    create(fileName, text) {
         if (this.started) {
           return 
         }
         this.started = true 
         this.encoder.createReadStream().pipe(createWriteStream(fileName))
+        this.stage.initCanvas(text)
         this.encoder.start()
         while (this.started) {
             this.stage.render((context) => {
@@ -76,11 +75,13 @@ class State {
 
 class TextNode {
 
-    constructor(i) {
+    constructor(i, text) {
         this.state = new State()
         this.i = i 
-        if (this.i < textParts.length - 1) {
-            this.next = new TextNode(this.i + 1)
+        this.textParts = text.split(" ")
+        this.text = this.textParts[this.i]
+        if (this.i < this.textParts.length - 1) {
+            this.next = new TextNode(this.i + 1, text)
             this.next.prev = this 
         }
     }
@@ -90,8 +91,8 @@ class TextNode {
           this.prev.draw(context)
       }
         const scale = this.state.scale 
-        const text = textParts[this.i]
-        const gap =  (2 * h) / (6 * textParts.length) 
+        const text = this.text
+        const gap =  (2 * h) / (6 * this.textParts.length) 
         context.font = `${gap}px monospace`
         context.fillStyle = '#212121'
         const textSize = context.measureText(text).width 
@@ -102,8 +103,7 @@ class TextNode {
           h / 3 + this.i * (2 * gap) 
         )
         context.fillText(text, -textSize / 2, -gap / 4)
-        context.restore()        
-        console.log("Rendering", text)
+        context.restore()    
     }
 
     update(cb) {
@@ -113,8 +113,8 @@ class TextNode {
 
 class TextList {
 
-    constructor() {
-        this.curr = new TextNode(0)
+    constructor(text) {
+        this.curr = new TextNode(0, text)
     }
 
     draw(context) {
@@ -131,5 +131,30 @@ class TextList {
     }
 }
 
-const textGif = new TextGif()
-textGif.create('aa.gif')
+class InputProcessor {
+    start(cb) {
+        console.log("enter words")
+        process.stdin.resume()
+        let msg = ""
+        process.stdin.on('data', (data) => {
+            const str = data.toString().replace('\n', '').trim()
+            if (str === 'QUIT') {
+                process.stdin.pause()
+                console.log("creating gif", msg)
+                cb(msg)
+            }
+            if (msg === '') {
+                msg = str 
+            } else {
+                msg = `${msg} ${str}`
+            }
+        })
+    }
+}
+
+const inputProcessor = new InputProcessor()
+inputProcessor.start((text) => {
+    const textGif = new TextGif()
+    textGif.create('aa.gif', text)
+})
+
