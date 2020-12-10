@@ -1,9 +1,13 @@
 const {Canvas} = require('canvas')
 const GIFEncoder = require('gifencoder')
 const {createWriteStream} = require('fs')
+const ora = require('ora')
 const w = 500, h = 500
-const backColor = "#BDBDBD"
-const delay = 20 
+const backColor = "#212121"
+const delay = 20
+const color = "#BDBDBD"
+const scGap = 0.015
+
 class Stage {
 
     initCanvas(text) {
@@ -42,19 +46,24 @@ class TextGif {
         if (this.started) {
           return 
         }
-        this.started = true 
-        this.encoder.createReadStream().pipe(createWriteStream(fileName))
-        this.stage.initCanvas(text)
-        this.encoder.start()
-        while (this.started) {
-            this.stage.render((context) => {
-                this.encoder.addFrame(context)
-            })
-            this.stage.update(() => {
-                this.encoder.end()
-                this.started = false
-            })
-        }
+        return new Promise((resolve, reject) => {
+            this.started = true 
+            this.encoder.createReadStream().pipe(createWriteStream(fileName))
+            this.stage.initCanvas(text)
+            this.encoder.start()
+            const interval  = setInterval(() => {
+                this.stage.render((context) => {
+                    this.encoder.addFrame(context)
+                })
+                this.stage.update(() => {
+                    this.encoder.end()
+                    this.started = false
+                    resolve("success")
+                    clearInterval(interval)
+                })
+            }, 0)
+        })
+        
     }
 }
 
@@ -65,7 +74,7 @@ class State {
     }
 
     update(cb) {
-        this.scale += 0.01
+        this.scale += scGap 
         if (Math.abs(this.scale) > 1) {
             this.scale = 1
             cb()
@@ -94,7 +103,7 @@ class TextNode {
         const text = this.text
         const gap =  (2 * h) / (6 * this.textParts.length) 
         context.font = `${gap}px monospace`
-        context.fillStyle = '#212121'
+        context.fillStyle = color
         const textSize = context.measureText(text).width 
         const x = (w / 2 + textSize / 2) * (1 - scale)
         context.save()
@@ -140,7 +149,6 @@ class InputProcessor {
             const str = data.toString().replace('\n', '').trim()
             if (str === 'QUIT') {
                 process.stdin.pause()
-                console.log("creating gif", msg)
                 cb(msg)
             }
             if (msg === '') {
@@ -153,8 +161,15 @@ class InputProcessor {
 }
 
 const inputProcessor = new InputProcessor()
+
 inputProcessor.start((text) => {
+    const spinner = ora('Creating gif')
+    spinner.color = 'green'
+    spinner.start()
     const textGif = new TextGif()
-    textGif.create('aa.gif', text)
+    textGif.create('aa.gif', text).then(() => {
+        spinner.stop()
+    })
+    
 })
 
